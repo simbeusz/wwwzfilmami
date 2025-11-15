@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3 YouTube — pionowo</title>
+  <style>
+    :root{--bg:#0f1113;--card:#0f1416;--muted:#9aa3ad;--accent:#7dd3fc}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;padding:28px;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      background:linear-gradient(180deg,var(--bg), #071018 120%); color:#e6f0f2; -webkit-font-smoothing:antialiased;
+      display:flex;align-items:flex-start;justify-content:center;
+    }
+    .wrap{width:min(900px,96%)}
+    h1{font-size:18px;margin:0 0 10px 0;font-weight:600}
+    p.lead{margin:0 0 18px 0;color:var(--muted);font-size:13px}
+
+    /* Each video stacked vertically */
+    .videos{display:flex;flex-direction:column;gap:14px}
+    .video{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:10px;border-radius:12px}
+    .video .meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .video .meta .title{font-size:14px;margin:0}
+    .video iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;background:#000}
+
+    .note{color:var(--muted);font-size:13px;margin-top:12px}
+
+    @media (max-width:520px){body{padding:14px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    
+
+    <div id="videos" class="videos"></div>
+
+    
+  </div>
+
+  <script>
+    // --- EDYTUJ TYLKO TĘ ZMIENNĄ: wklej dokładnie 3 linki ---
+    const LINKS = [
+      'https://www.youtube.com/watch?v=g9F3bltdLR0',
+      'https://www.youtube.com/watch?v=3JZ_D3ELwOQ',
+      'https://youtu.be/VIDEO_ID_THREE'
+    ];
+
+    const container = document.getElementById('videos');
+
+    function uidFromUrl(url){
+      try{
+        const u = new URL(url.trim());
+        if(u.hostname.includes('youtu.be')) return u.pathname.slice(1);
+        if(u.searchParams.get('v')) return u.searchParams.get('v');
+        const parts = u.pathname.split('/').filter(Boolean);
+        return parts.pop();
+      }catch(e){ return null }
+    }
+
+    async function fetchTitle(url){
+      try{
+        const res = await fetch('https://www.youtube.com/oembed?url=' + encodeURIComponent(url) + '&format=json');
+        if(!res.ok) throw new Error('no oembed');
+        const j = await res.json();
+        return j.title;
+      }catch(e){ return null }
+    }
+
+    async function render(){
+      container.innerHTML = '';
+
+      // Ensure exactly 3 items (if less, fill placeholders)
+      const normalized = LINKS.slice(0,3);
+      while(normalized.length < 3) normalized.push('');
+
+      for(let i=0;i<3;i++){
+        const raw = normalized[i] || '';
+        const id = uidFromUrl(raw) || '';
+        const videoEl = document.createElement('div'); videoEl.className='video';
+
+        const meta = document.createElement('div'); meta.className='meta';
+        const titleEl = document.createElement('h3'); titleEl.className='title'; titleEl.textContent = raw || 'Brak linku';
+        const info = document.createElement('div'); info.style.fontSize='13px'; info.style.color='var(--muted)'; info.textContent = id ? id : '';
+        meta.appendChild(titleEl); meta.appendChild(info);
+
+        const frameWrap = document.createElement('div');
+        if(id){
+          const iframe = document.createElement('iframe');
+          iframe.src = `https://www.youtube.com/embed/${id}`;
+          iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+          iframe.allowFullscreen = true;
+          frameWrap.appendChild(iframe);
+
+          // try to fetch title and update
+          fetchTitle(raw).then(t => { if(t) titleEl.textContent = t; }).catch(()=>{});
+        } else {
+          frameWrap.innerHTML = '<div style="padding:28px;color:var(--muted);text-align:center;border-radius:8px;border:1px dashed rgba(255,255,255,0.03)">Brak poprawnego linku YouTube</div>';
+        }
+
+        videoEl.appendChild(meta);
+        videoEl.appendChild(frameWrap);
+        container.appendChild(videoEl);
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
